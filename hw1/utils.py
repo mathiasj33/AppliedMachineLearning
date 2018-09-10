@@ -1,6 +1,8 @@
 import numpy as np
 from PIL import Image
 
+MEAN_PATH = 'means'
+
 
 def load_train_data(max_rows=None):
     data = np.genfromtxt('data/train.csv', delimiter=',', max_rows=max_rows)
@@ -33,13 +35,13 @@ def stretched_bbox(inst):
     inst[:400] = np.array(im).reshape(400)
 
 
-def save_mean_images(clf, folder):
-    test = load_test_data()
+def save_mean_images(clf, folder, max_rows=None):
+    test = load_test_data(max_rows=max_rows)
     preds = clf.predict(test)
     for i in range(10):
         images = test[(preds >= i - .1) & (preds <= i + .1)]  # account for floating point inaccuracy
         mean = np.mean(images, axis=0)
         to_binary(mean)
-        mean /= 255
+        # mean /= 255 -- to get 0s and 1s. However, PIL then misinterprets the data.
         mean_img = Image.fromarray(mean.reshape(28, 28))
-        mean_img.convert('L').save('/home/mathias/aml/means/{}/{}.png'.format(folder, i))
+        mean_img.convert('L').save('{}/{}/{}.png'.format(MEAN_PATH, folder, i))
