@@ -1,0 +1,9 @@
+.idea
+*/data
+hw1/means
+*.RData
+*.Rhistory
+*.Rproj.user
+hw1/R/svm_light
+*.Rproj
+*.dat
