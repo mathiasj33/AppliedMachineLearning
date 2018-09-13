@@ -8,5 +8,6 @@ clf = GaussianNB()
 clf.fit(train, train_labels)
 print(clf.score(val, val_labels))
 
-save_mean_images(clf, 'gaussian_untouched')
+# save_mean_images(clf, 'gaussian_untouched')
 
+# make_submission(clf, 'mfj3_1')

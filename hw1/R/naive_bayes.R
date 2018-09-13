@@ -1,5 +1,3 @@
-dat <- read.csv(file="../data/pima-indians-diabetes.csv", header=FALSE)
-
 calcAcc <- function(train, test) {
   pos_prob <- sum(train$V9) / length(train$V9)
   neg_prob <- 1-pos_prob
@@ -37,6 +35,7 @@ calcAcc <- function(train, test) {
   return(acc)
 }
 
+dat <- read.csv(file="../data/pima-indians-diabetes.csv", header=FALSE)
 numTest <- round(0.2 * nrow(dat), 0)
 avgAcc <- 0
 for(i in 1:10) {

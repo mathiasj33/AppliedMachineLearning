@@ -49,3 +49,15 @@ def save_mean_images(clf, folder, stretched=False, max_rows=None):
         size = 20 if stretched else 28
         mean_img = Image.fromarray(mean.reshape(size, size))
         mean_img.convert('L').save('{}/{}/{}.png'.format(MEAN_PATH, folder, i))
+
+
+def make_submission(clf, name, stretched=False, max_rows=None):
+    test = load_test_data(max_rows=max_rows)
+    if stretched:
+        np.apply_along_axis(stretched_bbox, axis=1, arr=test)
+        test = test[:, :400]
+    preds = clf.predict(test)
+    numbers = np.array(range(len(preds)))
+    numbers_preds = np.column_stack((numbers, preds))
+    np.savetxt('submission/{}.csv'.format(name), numbers_preds, fmt='%1d', delimiter=',',
+               header='ImageId,Label')
