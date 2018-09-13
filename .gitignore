@@ -7,3 +7,4 @@ hw1/means
 hw1/R/svm_light
 *.Rproj
 *.dat
+.Rproj.user
