@@ -31,11 +31,21 @@ class Svm:
     def gradient(self, batch, labels):
         gradient_a = 0.
         gradient_b = 0.
-        for (x, y) in zip(batch, labels):
-            cost = max(0, 1 - y*(np.dot(self.a, x) + self.b))
-            if cost == 0: continue
-            gradient_a += -y * x
-            gradient_b += -y
+        ys = np.dot(self.a, np.transpose(batch)) + self.b
+        ys *= labels
+        ys = 1-ys
+
+        it = np.nditer(ys, flags=['f_index'])
+        while not it.finished:
+            cost = max(0, it[0])
+            if cost == 0:
+                it.iternext()
+                continue
+            i = it.index
+            gradient_a += -labels[i] * batch[i, :]
+            gradient_b += -labels[i]
+            it.iternext()
+
         gradient_a /= len(batch)
         gradient_b /= len(batch)
         gradient_a += self.reg * self.a
