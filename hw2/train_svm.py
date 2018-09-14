@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 train, train_labels, val, val_labels = load_my_train_val_norm_data()
 epochs = 50
 steps = 300
-learning_rates = [(1,100)]
+learning_rates = [(1, 500)]
 all_accs = []
 all_weights = []
 
@@ -14,16 +14,16 @@ for (m,n) in learning_rates:
     accuracies = []
     weights = []
 
-    for i in range(epochs):
-        held_out_indices = np.random.choice(len(train), size=50)
-        held_out = train[held_out_indices, :]
-        held_out_labels = train_labels[held_out_indices]
-        mask = np.ones(len(train), np.bool)
-        mask[held_out_indices] = False
-        epoch_train = train[mask]
-        epoch_train_labels = train_labels[mask]
+    held_out_indices = np.random.choice(len(train), size=50, replace=False)
+    held_out = train[held_out_indices, :]
+    held_out_labels = train_labels[held_out_indices]
+    mask = np.ones(len(train), np.bool)
+    mask[held_out_indices] = False
+    epoch_train = train[mask]
+    epoch_train_labels = train_labels[mask]
 
-        batch_size = int(len(train) / steps)
+    for i in range(epochs):
+        batch_size = int(len(epoch_train) / steps)
         batches = np.random.choice(len(epoch_train), size=(steps, batch_size), replace=False)
 
         count = 0
@@ -38,10 +38,12 @@ for (m,n) in learning_rates:
                 weights.append(svm.magnitude())
 
         print('Epoch {}: {}'.format(i, accuracies[-1]))
+        print(svm.a)
         svm.epoch += 1
 
     all_accs.append(accuracies)
     all_weights.append(weights)
+    print(len(accuracies))
 
 _, axes = plt.subplots(2, max(len(learning_rates), 2), sharex=True)
 for i in range(len(learning_rates)):

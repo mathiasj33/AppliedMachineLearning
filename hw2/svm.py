@@ -3,7 +3,7 @@ import numpy as np
 
 class Svm:
     def __init__(self, dims, m, n, reg):
-        self.a = np.zeros(dims, dtype=float)
+        self.a = np.ones(dims, dtype=float)
         self.b = 0.
         self.m = m
         self.n = n
