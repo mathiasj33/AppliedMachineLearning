@@ -3,8 +3,8 @@ import numpy as np
 
 class Svm:
     def __init__(self, dims, m, n, reg):
-        self.a = np.ones(dims, dtype=float)
-        self.b = 1.
+        self.a = np.zeros(dims, dtype=float)
+        self.b = 0.
         self.m = m
         self.n = n
         self.epoch = 0  # k in notes
@@ -18,6 +18,9 @@ class Svm:
     def accuracy(self, data, labels):
         pred = np.apply_along_axis(self.predict, 1, data)
         return np.sum(pred == labels) / len(data)
+
+    def magnitude(self):
+        return np.sqrt(np.dot(self.a, self.a))
 
     def batch_update(self, batch, labels):
         gradient_a, gradient_b = self.gradient(batch, labels)
