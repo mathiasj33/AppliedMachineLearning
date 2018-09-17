@@ -22,6 +22,9 @@ class Svm:
     def magnitude(self):
         return np.sqrt(np.dot(self.a, self.a))
 
+    def new_epoch(self):
+        self.epoch += 1
+
     def batch_update(self, batch, labels):
         gradient_a, gradient_b = self.gradient(batch, labels)
         eta = self.m/(self.epoch + self.n)
@@ -31,11 +34,11 @@ class Svm:
     def gradient(self, batch, labels):
         gradient_a = 0.
         gradient_b = 0.
-        ys = np.dot(self.a, np.transpose(batch)) + self.b
+        ys = np.dot(self.a, np.transpose(batch)) + self.b  # computing everything for the batch via matrix ops
         ys *= labels
         ys = 1-ys
 
-        it = np.nditer(ys, flags=['f_index'])
+        it = np.nditer(ys, flags=['f_index'])  # now we have to iterate :(
         while not it.finished:
             cost = max(0, it[0])
             if cost == 0:

@@ -38,3 +38,8 @@ def load_my_train_val_norm_data(max_rows=None):
     val -= means_stds[0, :]
 
     return train, train_labels.astype(int), val, val_labels.astype(int)
+
+
+def load_test_norm_data(max_rows=None):
+    test = np.genfromtxt('data/test.data', delimiter=',', max_rows=max_rows, usecols=(0, 2, 4, 10, 11, 12))
+    return test
