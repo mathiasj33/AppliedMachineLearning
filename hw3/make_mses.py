@@ -10,10 +10,9 @@ output = []
 for i in ['I', 'II', 'III', 'IV', 'V']:
     data = np.genfromtxt('data/data{}.csv'.format(i), delimiter=',', skip_header=True)
     mean = np.mean(data, axis=0)
-    data -= mean
-    cov = np.cov(data, rowvar=False, bias=True)
-    true_pca = PCA(data, true_mean, true_cov)
-    pca = PCA(data, mean, cov)
+    cov = np.cov(data - mean, rowvar=False, bias=True)
+    true_pca = PCA(data - true_mean, true_mean, true_cov)
+    pca = PCA(data - mean, mean, cov)
 
     mses = []
     for i in range(5):
