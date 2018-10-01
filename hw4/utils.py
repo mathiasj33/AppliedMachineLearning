@@ -38,8 +38,8 @@ class Dataset:
             for j in range(10):
                 m1 = self.mean(i)
                 m2 = self.mean(j)
-                dist[i, j] = np.dot((m1 - m2), (m1 - m2))
-                # dist[i, j] = np.linalg.norm(m1-m2)
+                # dist[i, j] = np.dot((m1 - m2), (m1 - m2))
+                dist[i, j] = np.linalg.norm(m1-m2)  # piazza said to use euclidean instead of square distance
         return dist
 
     @staticmethod
