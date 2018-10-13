@@ -17,10 +17,18 @@ def to_histogram(inst):
     return hist
 
 
-data = []
-labels = []
-for inst,label in ds.data_tuple_list:
-    data.append(to_histogram(inst))
-    labels.append(label)
-np.savetxt('computed_data/feature_vectors.csv', np.array(data), delimiter=',')
-np.savetxt('computed_data/labels.csv', np.array(labels), fmt='%d', delimiter=',')
+train_data = []
+train_labels = []
+for inst,label in ds.train_data_tuple_list:
+    train_data.append(to_histogram(inst))
+    train_labels.append(label)
+np.savetxt('computed_data/train_feature_vectors.csv', np.array(train_data), delimiter=',')
+np.savetxt('computed_data/train_labels.csv', np.array(train_labels), fmt='%d', delimiter=',')
+
+test_data = []
+test_labels = []
+for inst,label in ds.test_data_tuple_list:
+    test_data.append(to_histogram(inst))
+    test_labels.append(label)
+np.savetxt('computed_data/test_feature_vectors.csv', np.array(test_data), delimiter=',')
+np.savetxt('computed_data/test_labels.csv', np.array(test_labels), fmt='%d', delimiter=',')
