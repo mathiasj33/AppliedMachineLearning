@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors as NN
 import matplotlib.pyplot as plt
 
-ds = Dataset()
+ds = Dataset(32)
 ds.load_and_quantize_data()
 centers = np.genfromtxt('computed_data/cluster_centers.csv', delimiter=',')
 nn = NN(n_neighbors=1).fit(centers)

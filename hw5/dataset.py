@@ -3,13 +3,11 @@ from sklearn.cluster import KMeans
 import os
 import random
 
-random.seed(0)
-
 
 class Dataset:
-    SEGMENT_LENGTH = 32
 
-    def __init__(self):
+    def __init__(self, sample_size):
+        self.sample_size = sample_size
         self.train_data_tuple_list = []
         self.test_data_tuple_list = []
         self.train_data = None
@@ -24,6 +22,11 @@ class Dataset:
     def load_data_tuple_list(self):
         paths = self.get_filepaths_with_label()
         test_paths = random.sample(paths, 100)
+        # make sure that every class is represented in the test data
+        test_paths.append(('data/Eat_soup/Accelerometer-2011-03-24-13-33-22-eat_soup-f1.txt',
+                           self.labels_to_num['Eat_soup']))
+        test_paths.append(('data/Eat_meat/Accelerometer-2011-03-24-13-12-52-eat_meat-f1.txt',
+                          self.labels_to_num['Eat_meat']))
         train_paths = [p for p in paths if p not in test_paths]
         for file, label in train_paths:
             self.train_data_tuple_list.append((np.genfromtxt(file, delimiter=' '), label))
@@ -43,13 +46,23 @@ class Dataset:
     def quantize_data_item(self, item):
         data = []
         count = 0
-        for i in range(int(len(item) / self.SEGMENT_LENGTH)):
-            index = i * self.SEGMENT_LENGTH
-            data.append(item[index:index + self.SEGMENT_LENGTH, :].ravel('F'))
-            count += 1
-        if len(item) % self.SEGMENT_LENGTH != 0:  # we want to use the last samples too; overlaps don't matter
-            data.append(item[-self.SEGMENT_LENGTH:, :].ravel('F'))
-            count += 1
+        overlap = True  # overlap of 0.5
+        if overlap:
+            for i in range(2*int(len(item) / self.sample_size)):
+                index = i * self.sample_size / 2
+                index = int(index)
+                if len(item[index:]) < self.sample_size:
+                    continue
+                data.append(item[index:index + self.sample_size, :].ravel('F'))
+                count += 1
+        else:
+            for i in range(int(len(item) / self.sample_size)):
+                index = i * self.sample_size
+                data.append(item[index:index + self.sample_size, :].ravel('F'))
+                count += 1
+            if len(item) % self.sample_size != 0:  # include last sample
+                data.append(item[-self.sample_size:, :].ravel('F'))
+                count += 1
         return data, count
 
     def get_labels_dict(self):
@@ -64,7 +77,7 @@ class Dataset:
         return paths
 
     def cluster(self, n):
-        kmeans = KMeans(n_clusters=n, random_state=0, verbose=1).fit(self.train_data)
+        kmeans = KMeans(n_clusters=n, random_state=0, verbose=0).fit(self.train_data)
         return kmeans.cluster_centers_
 
     def get_file_data_with_label(self, label):

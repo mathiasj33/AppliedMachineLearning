@@ -1,0 +1,11 @@
+sample_size = 48, k = 480: acc = .73
+sample_size = 32, k = 480: acc = .75
+sample_size = 32, k = 800: acc = .68
+sample_size = 32, k = 240: acc = .76
+sample_size = 32, k = 480, overlap=.5, acc = .82
+sample_size = 32, k = 480, overlap=.67, acc = .82
+sample_size = 16, k = 480: acc = .78
+sample_size = 16, k = 800: acc = .69
+sample_size = 16, k = 240: acc = .74
+sample_size = 16, k = 480, overlap=.5, acc = .79
+sample_size = 8, k = 480: acc = .67
