@@ -37,7 +37,7 @@ centers, pis = init_params()
 #     return weights
 
 def compute_new_weights():
-    X = np.repeat(img[:,np.newaxis], 10, axis=1)
+    X = np.repeat(img[:,np.newaxis], num_clusters, axis=1)
     X = X - centers
     weights = np.sum(np.square(X), axis=2)
     weights = np.exp(-1/2 * weights)
@@ -45,5 +45,14 @@ def compute_new_weights():
     weights /= np.sum(weights, axis=1).reshape(307200, 1)
     return weights
 
+def compute_new_centers_and_pis(weights):
+    X = np.repeat(img[:, np.newaxis], num_clusters, axis=1)
+    X = X.astype(np.float64)
+    cweights = np.repeat(weights[:, :, np.newaxis], 3, axis=2)
+    X *= cweights
+    centers = np.sum(X, axis=0) / np.repeat(np.sum(weights, axis=0)[:, np.newaxis], 3, axis=1)
+    pis = np.sum(weights, axis=0) / len(img)
+    return centers, pis
 
 weights = compute_new_weights()
+centers, pis = compute_new_centers_and_pis(weights)
