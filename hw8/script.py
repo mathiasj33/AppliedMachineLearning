@@ -5,12 +5,13 @@ from sklearn.neighbors import NearestNeighbors as NN
 from scipy.stats import multivariate_normal as mvn
 from sklearn.cluster import KMeans
 
-img = Image.open('data/2.jpg')
+img = Image.open('data/3.jpg')
+width, height = img.size
 img = np.array(img)
-img = img.reshape((480*640,3))
+img = img.reshape((width*height,3))
 img = np.asarray(img, np.float64)
 
-num_clusters = 10
+num_clusters = 50
 num_iter = 20
 
 def init_params():
@@ -27,12 +28,12 @@ def compute_new_weights():
     weights = np.sum(np.square(X), axis=2)  # (x-u)^T(x-u). (i,j)th entry of weights will be w_ij from book
     nn = NN(n_neighbors=1).fit(centers)
     id = nn.kneighbors(img, return_distance=False)
-    closest = centers[id.reshape(307200)]  # subtract d_min^2 for numerical stability
+    closest = centers[id.reshape(width*height)]  # subtract d_min^2 for numerical stability
     d_squared = np.sum(np.square(img - closest), axis=1)
     weights -= d_squared[:, np.newaxis]
     weights = np.exp(-1/2 * weights)
     weights *= pis
-    weights /= np.sum(weights, axis=1).reshape(307200, 1)  # efficiently compute the denominator for every entry
+    weights /= np.sum(weights, axis=1).reshape(width*height, 1)  # efficiently compute the denominator for every entry
     return weights
 
 def compute_new_centers_and_pis(weights):
@@ -45,6 +46,7 @@ def compute_new_centers_and_pis(weights):
 for i in range(num_iter):
     weights = compute_new_weights()
     centers, pis = compute_new_centers_and_pis(weights)
+    print(i / num_iter)
 
 probs = np.zeros((len(img), num_clusters))
 for i in range(num_clusters):
@@ -54,5 +56,5 @@ for i in range(num_clusters):
 
 closest = np.argmax(probs, axis=1)  # obtain the cluster center with the highest posterior probability
 segmented = centers[closest]
-segmented = segmented.reshape((480,640,3))
+segmented = segmented.reshape((height, width, 3))
 Image.fromarray(np.asarray(segmented, np.uint8)).show()
