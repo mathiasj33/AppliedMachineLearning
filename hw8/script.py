@@ -1,58 +1,58 @@
 from PIL import Image
 import numpy as np
 np.random.seed(0)
+from sklearn.neighbors import NearestNeighbors as NN
+from scipy.stats import multivariate_normal as mvn
+from sklearn.cluster import KMeans
 
 img = Image.open('data/2.jpg')
 img = np.array(img)
 img = img.reshape((480*640,3))
+img = np.asarray(img, np.float64)
 
 num_clusters = 10
+num_iter = 20
 
 def init_params():
-    centers = img[np.random.choice(len(img), num_clusters, replace=False)]
-    pis = np.array([1/num_clusters] * num_clusters)
+    kmeans = KMeans(n_clusters=num_clusters, random_state=0, verbose=0).fit(img)
+    centers = kmeans.cluster_centers_
+    pis = np.array([np.sum(kmeans.labels_ == i) / len(img) for i in range(num_clusters)])
     return centers, pis
 
 centers, pis = init_params()
 
-# def compute_new_weights_inefficient():
-#     weights = np.zeros((len(img), num_clusters))
-#     for i in range(len(img)):
-#         if i % 10000 == 0: print(i / len(img))
-#         point = img[i,:]
-#         for j in range(num_clusters):
-#             diff = point-centers[j]
-#             num = np.exp(-1/2*(np.dot(diff.T, diff)))*pis[j]
-#             weights[i,j] = num
-#     # weights /= np.sum(weights, axis = 1).reshape(307200,1)
-#     return weights
-
-# def compute_new_weights():
-#     weights = np.zeros((len(img), num_clusters))
-#     for i in range(num_clusters):
-#         diff = img - centers[i]
-#         dot = np.sum(np.square(diff), axis=1)
-#         weights[:, i] = np.exp(-1/2*dot) * pis[i]
-#     weights /= np.sum(weights, axis=1).reshape(307200, 1)
-#     return weights
-
 def compute_new_weights():
-    X = np.repeat(img[:,np.newaxis], num_clusters, axis=1)
+    X = np.repeat(img[:,np.newaxis, :], num_clusters, axis=1)  # shape num_points x num_clusters x 3
     X = X - centers
-    weights = np.sum(np.square(X), axis=2)
+    weights = np.sum(np.square(X), axis=2)  # (x-u)^T(x-u). (i,j)th entry of weights will be w_ij from book
+    nn = NN(n_neighbors=1).fit(centers)
+    id = nn.kneighbors(img, return_distance=False)
+    closest = centers[id.reshape(307200)]  # subtract d_min^2 for numerical stability
+    d_squared = np.sum(np.square(img - closest), axis=1)
+    weights -= d_squared[:, np.newaxis]
     weights = np.exp(-1/2 * weights)
     weights *= pis
-    weights /= np.sum(weights, axis=1).reshape(307200, 1)
+    weights /= np.sum(weights, axis=1).reshape(307200, 1)  # efficiently compute the denominator for every entry
     return weights
 
 def compute_new_centers_and_pis(weights):
-    X = np.repeat(img[:, np.newaxis], num_clusters, axis=1)
-    X = X.astype(np.float64)
-    cweights = np.repeat(weights[:, :, np.newaxis], 3, axis=2)
-    X *= cweights
-    centers = np.sum(X, axis=0) / np.repeat(np.sum(weights, axis=0)[:, np.newaxis], 3, axis=1)
+    X = np.repeat(img[:, np.newaxis, :], num_clusters, axis=1) # shape num_points x num_clusters x 3
+    X *= weights[:, :, np.newaxis]  # multiply every point with corresponding cluster weights
+    centers = np.sum(X, axis=0) / np.sum(weights, axis=0)[:, np.newaxis]
     pis = np.sum(weights, axis=0) / len(img)
     return centers, pis
 
-weights = compute_new_weights()
-centers, pis = compute_new_centers_and_pis(weights)
+for i in range(num_iter):
+    weights = compute_new_weights()
+    centers, pis = compute_new_centers_and_pis(weights)
+
+probs = np.zeros((len(img), num_clusters))
+for i in range(num_clusters):
+    c, pi = centers[i], pis[i]
+    prob = pi * mvn(mean=c).pdf(img)
+    probs[:, i] = prob
+
+closest = np.argmax(probs, axis=1)  # obtain the cluster center with the highest posterior probability
+segmented = centers[closest]
+segmented = segmented.reshape((480,640,3))
+Image.fromarray(np.asarray(segmented, np.uint8)).show()
