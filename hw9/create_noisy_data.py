@@ -1,11 +1,6 @@
 import numpy as np
 np.random.seed(0)
-from PIL import Image
-
-def show(arr):
-    arr[arr==-1] = 0
-    arr[arr==1] = 255
-    Image.fromarray(arr).show()
+from hw9.utils import show
 
 data = np.load('data/data.npy')
 
