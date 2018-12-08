@@ -9,3 +9,6 @@ hw1/R/svm_light
 *.dat
 .Rproj.user
 computed_data
+models
+summaries
+MNIST-data

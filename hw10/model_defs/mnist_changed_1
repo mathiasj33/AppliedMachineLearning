@@ -1,0 +1,24 @@
+conv1 = tf.layers.conv2d(
+        inputs=reshaped,
+        filters=8,
+        strides=2,
+        kernel_size=[5, 5],
+        padding="same",
+        activation=tf.nn.relu)
+conv2 = tf.layers.conv2d(
+        inputs=conv1,
+        filters=8,
+        strides=2,
+        kernel_size=[5, 5],
+        padding="same",
+        activation=tf.nn.relu)
+conv3 = tf.layers.conv2d(
+        inputs=conv2,
+        filters=16,
+        kernel_size=[5, 5],
+        padding="same",
+        activation=tf.nn.relu)
+flat = tf.reshape(conv3, [-1, 7 * 7 * 16])
+dense = tf.layers.dense(inputs=flat, units=512, activation=tf.nn.relu)
+dropout = tf.layers.dropout(dense, dropout_prob)
+logits = tf.layers.dense(inputs=dropout, units=10)

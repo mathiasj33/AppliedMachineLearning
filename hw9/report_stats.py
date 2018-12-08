@@ -22,7 +22,7 @@ def print_stats(recon):
     print(np.sum((data.flatten() == 1) & (recon.flatten() == 1)) / np.sum(data.flatten() == 1))
 
     print('FPR:')
-    print(np.sum((data.flatten() == 1) & (recon.flatten() == -1)) / np.sum(data.flatten() == -1))
+    print(np.sum((data.flatten() == -1) & (recon.flatten() == 1)) / np.sum(data.flatten() == -1))
 
 if __name__ == '__main__':
     for i in [-1, 0, .2, 1, 2]:
