@@ -27,8 +27,9 @@ IMAGE_SIZE = 24
 
 # Global constants describing the CIFAR-10 data set.
 NUM_CLASSES = 10
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 50000
-NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 10000
+NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 40000
+NUM_EXAMPLES_PER_EPOCH_FOR_VAL = 10000
+NUM_EXAMPLES_PER_EPOCH_FOR_TEST = 10000
 
 
 def read_cifar10(filename_queue):
@@ -145,7 +146,7 @@ def distorted_inputs(data_dir, batch_size):
     labels: Labels. 1D tensor of [batch_size] size.
   """
   filenames = [os.path.join(data_dir, 'data_batch_%d.bin' % i)
-               for i in xrange(1, 6)]
+               for i in xrange(1, 5)]
   for f in filenames:
     if not tf.gfile.Exists(f):
       raise ValueError('Failed to find file: ' + f)
@@ -199,11 +200,11 @@ def distorted_inputs(data_dir, batch_size):
                                          shuffle=True)
 
 
-def inputs(eval_data, data_dir, batch_size):
+def inputs(data_type, data_dir, batch_size):
   """Construct input for CIFAR evaluation using the Reader ops.
 
   Args:
-    eval_data: bool, indicating if one should use the train or eval data set.
+    data_type: string, indicating if one should use the train, validation or test data set.
     data_dir: Path to the CIFAR-10 data directory.
     batch_size: Number of images per batch.
 
@@ -211,13 +212,16 @@ def inputs(eval_data, data_dir, batch_size):
     images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
     labels: Labels. 1D tensor of [batch_size] size.
   """
-  if not eval_data:
+  if data_type == 'train':
     filenames = [os.path.join(data_dir, 'data_batch_%d.bin' % i)
-                 for i in xrange(1, 6)]
+                 for i in xrange(1, 5)]
     num_examples_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
-  else:
+  elif data_type == 'val':
+      filenames = [os.path.join(data_dir, 'val_batch.bin')]
+      num_examples_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_VAL
+  elif data_type == 'test':
     filenames = [os.path.join(data_dir, 'test_batch.bin')]
-    num_examples_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
+    num_examples_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TEST
 
   for f in filenames:
     if not tf.gfile.Exists(f):

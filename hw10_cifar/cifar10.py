@@ -55,7 +55,8 @@ tf.app.flags.DEFINE_boolean('use_fp16', False,
 IMAGE_SIZE = cifar10_input.IMAGE_SIZE
 NUM_CLASSES = cifar10_input.NUM_CLASSES
 NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
-NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
+NUM_EXAMPLES_PER_EPOCH_FOR_VAL = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_VAL
+NUM_EXAMPLES_PER_EPOCH_FOR_TEST = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TEST
 
 
 # Constants describing the training process.
@@ -156,11 +157,11 @@ def distorted_inputs():
   return images, labels
 
 
-def inputs(eval_data):
+def inputs(data_type):
   """Construct input for CIFAR evaluation using the Reader ops.
 
   Args:
-    eval_data: bool, indicating if one should use the train or eval data set.
+    data_type: string, indicating if one should use the train, val or eval data set.
 
   Returns:
     images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
@@ -172,7 +173,7 @@ def inputs(eval_data):
   if not FLAGS.data_dir:
     raise ValueError('Please supply a data_dir')
   data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
-  images, labels = cifar10_input.inputs(eval_data=eval_data,
+  images, labels = cifar10_input.inputs(data_type=data_type,
                                         data_dir=data_dir,
                                         batch_size=FLAGS.batch_size)
   if FLAGS.use_fp16:
@@ -226,17 +227,36 @@ def inference(images):
     conv2 = tf.nn.relu(pre_activation, name=scope.name)
     _activation_summary(conv2)
 
-  # norm2
-  norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                    name='norm2')
-  # pool2
-  pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
-                         strides=[1, 2, 2, 1], padding='SAME', name='pool2')
+    # pool2
+    pool2 = tf.nn.max_pool(conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
+                           padding='SAME', name='pool2')
+    # norm2
+    norm2 = tf.nn.lrn(pool2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+                      name='norm2')
+
+  # conv3
+  with tf.variable_scope('conv3') as scope:
+      kernel = _variable_with_weight_decay('weights',
+                                           shape=[3, 3, 64, 64],
+                                           stddev=5e-2,
+                                           wd=None)
+      conv = tf.nn.conv2d(norm2, kernel, [1, 1, 1, 1], padding='SAME')
+      biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1))
+      pre_activation = tf.nn.bias_add(conv, biases)
+      conv3 = tf.nn.relu(pre_activation, name=scope.name)
+      _activation_summary(conv3)
+
+  # norm3
+  norm3 = tf.nn.lrn(conv3, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+                    name='norm3')
+  # pool3
+  pool3 = tf.nn.max_pool(norm3, ksize=[1, 3, 3, 1],
+                         strides=[1, 2, 2, 1], padding='SAME', name='pool3')
 
   # local3
   with tf.variable_scope('local3') as scope:
     # Move everything into depth so we can perform a single matrix multiply.
-    reshape = tf.reshape(pool2, [images.get_shape().as_list()[0], -1])
+    reshape = tf.reshape(pool3, [images.get_shape().as_list()[0], -1])
     dim = reshape.get_shape()[1].value
     weights = _variable_with_weight_decay('weights', shape=[dim, 384],
                                           stddev=0.04, wd=0.004)
@@ -244,12 +264,15 @@ def inference(images):
     local3 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
     _activation_summary(local3)
 
+  keep_prob = tf.placeholder(tf.float32)
+  dropout = tf.nn.dropout(local3, keep_prob)
+
   # local4
   with tf.variable_scope('local4') as scope:
     weights = _variable_with_weight_decay('weights', shape=[384, 192],
                                           stddev=0.04, wd=0.004)
     biases = _variable_on_cpu('biases', [192], tf.constant_initializer(0.1))
-    local4 = tf.nn.relu(tf.matmul(local3, weights) + biases, name=scope.name)
+    local4 = tf.nn.relu(tf.matmul(dropout, weights) + biases, name=scope.name)
     _activation_summary(local4)
 
   # linear layer(WX + b),
@@ -264,7 +287,7 @@ def inference(images):
     softmax_linear = tf.add(tf.matmul(local4, weights), biases, name=scope.name)
     _activation_summary(softmax_linear)
 
-  return softmax_linear
+  return softmax_linear, keep_prob
 
 
 def loss(logits, labels):
@@ -352,7 +375,7 @@ def train(total_loss, global_step):
 
   # Compute gradients.
   with tf.control_dependencies([loss_averages_op]):
-    opt = tf.train.GradientDescentOptimizer(lr)  # TODO: use Adam? Fix seed?
+    opt = tf.train.GradientDescentOptimizer(lr)
     grads = opt.compute_gradients(total_loss)
 
   # Apply gradients.

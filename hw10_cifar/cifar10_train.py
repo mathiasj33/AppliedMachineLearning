@@ -45,7 +45,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', 'cifar10_train/train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps', 2000,
+tf.app.flags.DEFINE_integer('max_steps', 40000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
@@ -66,7 +66,7 @@ def train():
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits = cifar10.inference(images)
+    logits, keep_prob = cifar10.inference(images)
 
     # Calculate loss.
     loss = cifar10.loss(logits, labels)
@@ -101,8 +101,8 @@ def train():
           print (format_str % (datetime.now(), self._step, loss_value,
                                examples_per_sec, sec_per_batch))
         if self._step % 100 == 0:
-            cifar10_eval.evaluate(eval_data=False)
-            cifar10_eval.evaluate(eval_data=True)
+            cifar10_eval.evaluate(data_type='train')
+            cifar10_eval.evaluate(data_type='val')
 
     with tf.train.MonitoredTrainingSession(
         checkpoint_dir=FLAGS.train_dir,
@@ -116,10 +116,12 @@ def train():
         save_checkpoint_steps=100,
         save_checkpoint_secs=None) as mon_sess:
       while not mon_sess.should_stop():
-        mon_sess.run(train_op)
+        mon_sess.run(train_op, feed_dict={keep_prob: 0.8})
         # current_step = tf.train.global_step(mon_sess, global_step)
         # if current_step % 10 == 0:
         #
+
+    cifar10_eval.evaluate(data_type='test')
 
 
 

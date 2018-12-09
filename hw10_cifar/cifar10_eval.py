@@ -47,8 +47,6 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('eval_dir', 'cifar10_train/eval',
                            """Directory where to write event logs.""")
-tf.app.flags.DEFINE_string('eval_data', 'test',
-                           """Either 'test' or 'train_eval'.""")
 tf.app.flags.DEFINE_string('checkpoint_dir', 'cifar10_train/train',
                            """Directory where to read model checkpoints.""")
 tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5,
@@ -59,7 +57,7 @@ tf.app.flags.DEFINE_boolean('run_once', True,
                          """Whether to run eval only once.""")
 
 
-def eval_once(saver, summary_writer, top_k_op, summary_op, eval_data):
+def eval_once(saver, summary_writer, top_k_op, summary_op, keep_prob, data_type):
   """Run Eval once.
 
   Args:
@@ -89,13 +87,14 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, eval_data):
         threads.extend(qr.create_threads(sess, coord=coord, daemon=True,
                                          start=True))
 
-      num_examples = 10000 if eval_data else 50000
+      data_type_to_num = {'train': 50000, 'val': 10000, 'test': 10000}
+      num_examples = data_type_to_num[data_type]
       num_iter = int(math.ceil(num_examples / FLAGS.batch_size))
       true_count = 0  # Counts the number of correct predictions.
       total_sample_count = num_iter * FLAGS.batch_size
       step = 0
       while step < num_iter and not coord.should_stop():
-        predictions = sess.run([top_k_op])
+        predictions = sess.run([top_k_op], feed_dict={keep_prob: 1})
         true_count += np.sum(predictions)
         step += 1
 
@@ -104,7 +103,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, eval_data):
       print('%s: precision @ 1 = %.3f' % (datetime.now(), precision))
 
       summary = tf.Summary()
-      summary.ParseFromString(sess.run(summary_op))
+      summary.ParseFromString(sess.run(summary_op, feed_dict={keep_prob: 1}))
       summary.value.add(tag='Accuracy', simple_value=precision)
       summary_writer.add_summary(summary, global_step)
     except Exception as e:  # pylint: disable=broad-except
@@ -114,17 +113,16 @@ def eval_once(saver, summary_writer, top_k_op, summary_op, eval_data):
     coord.join(threads, stop_grace_period_secs=10)
 
 
-def evaluate(eval_data):
+def evaluate(data_type):
   """Eval CIFAR-10 for a number of steps."""
   with tf.Graph().as_default() as g:
     # Get images and labels for CIFAR-10.
-    # eval_data = FLAGS.eval_data == 'test'
-    images, labels = cifar10.inputs(eval_data=eval_data)
+    images, labels = cifar10.inputs(data_type=data_type)
     # images, labels = cifar10.distorted_inputs()
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits = cifar10.inference(images)
+    logits, keep_prob = cifar10.inference(images)
 
     # Calculate predictions.
     top_k_op = tf.nn.in_top_k(logits, labels, 1)
@@ -138,11 +136,11 @@ def evaluate(eval_data):
     # Build the summary operation based on the TF collection of Summaries.
     summary_op = tf.summary.merge_all()
 
-    eval_dir = 'cifar10_train/eval' if eval_data else 'cifar10_train/train'
+    eval_dir = 'cifar10_train/%s' % data_type
     summary_writer = tf.summary.FileWriter(eval_dir)
 
     while True:
-      eval_once(saver, summary_writer, top_k_op, summary_op, eval_data)
+      eval_once(saver, summary_writer, top_k_op, summary_op, keep_prob, data_type)
       if FLAGS.run_once:
         break
       time.sleep(FLAGS.eval_interval_secs)
