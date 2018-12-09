@@ -59,7 +59,7 @@ tf.app.flags.DEFINE_boolean('run_once', True,
                          """Whether to run eval only once.""")
 
 
-def eval_once(saver, summary_writer, top_k_op, summary_op):
+def eval_once(saver, summary_writer, top_k_op, summary_op, eval_data):
   """Run Eval once.
 
   Args:
@@ -89,7 +89,8 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
         threads.extend(qr.create_threads(sess, coord=coord, daemon=True,
                                          start=True))
 
-      num_iter = int(math.ceil(FLAGS.num_examples / FLAGS.batch_size))
+      num_examples = 10000 if eval_data else 50000
+      num_iter = int(math.ceil(num_examples / FLAGS.batch_size))
       true_count = 0  # Counts the number of correct predictions.
       total_sample_count = num_iter * FLAGS.batch_size
       step = 0
@@ -113,11 +114,11 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
     coord.join(threads, stop_grace_period_secs=10)
 
 
-def evaluate():
+def evaluate(eval_data):
   """Eval CIFAR-10 for a number of steps."""
   with tf.Graph().as_default() as g:
     # Get images and labels for CIFAR-10.
-    eval_data = FLAGS.eval_data == 'test'
+    # eval_data = FLAGS.eval_data == 'test'
     images, labels = cifar10.inputs(eval_data=eval_data)
     # images, labels = cifar10.distorted_inputs()
 
@@ -137,10 +138,11 @@ def evaluate():
     # Build the summary operation based on the TF collection of Summaries.
     summary_op = tf.summary.merge_all()
 
-    summary_writer = tf.summary.FileWriter(FLAGS.eval_dir)
+    eval_dir = 'cifar10_train/eval' if eval_data else 'cifar10_train/train'
+    summary_writer = tf.summary.FileWriter(eval_dir)
 
     while True:
-      eval_once(saver, summary_writer, top_k_op, summary_op)
+      eval_once(saver, summary_writer, top_k_op, summary_op, eval_data)
       if FLAGS.run_once:
         break
       time.sleep(FLAGS.eval_interval_secs)

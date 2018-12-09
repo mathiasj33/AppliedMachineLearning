@@ -45,7 +45,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', 'cifar10_train/train',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps', 100,
+tf.app.flags.DEFINE_integer('max_steps', 2000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
@@ -100,8 +100,9 @@ def train():
                         'sec/batch)')
           print (format_str % (datetime.now(), self._step, loss_value,
                                examples_per_sec, sec_per_batch))
-        if self._step % 10 == 0:
-            cifar10_eval.evaluate()
+        if self._step % 100 == 0:
+            cifar10_eval.evaluate(eval_data=False)
+            cifar10_eval.evaluate(eval_data=True)
 
     with tf.train.MonitoredTrainingSession(
         checkpoint_dir=FLAGS.train_dir,
@@ -110,9 +111,9 @@ def train():
                _LoggerHook()],
         config=tf.ConfigProto(
             log_device_placement=FLAGS.log_device_placement),
-        save_summaries_steps=10,
+        save_summaries_steps=100,
         save_summaries_secs=None,
-        save_checkpoint_steps=10,
+        save_checkpoint_steps=100,
         save_checkpoint_secs=None) as mon_sess:
       while not mon_sess.should_stop():
         mon_sess.run(train_op)

@@ -286,9 +286,9 @@ def loss(logits, labels):
   cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
   tf.add_to_collection('losses', cross_entropy_mean)
 
-  correct_prediction = tf.equal(labels, tf.argmax(input=logits, axis=1))
-  accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-  tf.summary.scalar("Accuracy", accuracy)
+  # correct_prediction = tf.equal(labels, tf.argmax(input=logits, axis=1))
+  # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+  # tf.summary.scalar("Accuracy", accuracy)
 
   # The total loss is defined as the cross entropy loss plus all of the weight
   # decay terms (L2 loss).
@@ -352,7 +352,7 @@ def train(total_loss, global_step):
 
   # Compute gradients.
   with tf.control_dependencies([loss_averages_op]):
-    opt = tf.train.GradientDescentOptimizer(lr)  # TODO: use Adam?
+    opt = tf.train.GradientDescentOptimizer(lr)  # TODO: use Adam? Fix seed?
     grads = opt.compute_gradients(total_loss)
 
   # Apply gradients.
