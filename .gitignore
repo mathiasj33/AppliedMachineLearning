@@ -12,3 +12,6 @@ computed_data
 models
 summaries
 MNIST-data
+cifar10_data
+cifar10_train
+cifar10_train_bkp
